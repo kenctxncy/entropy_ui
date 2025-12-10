@@ -1,0 +1,10 @@
+[package]
+name = "entropy_ui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+entropy_fx = { path = "../entropy_fx" }
+eframe = "0.33.2"
+egui = "0.33.2"
+rand = "0.9.2"
