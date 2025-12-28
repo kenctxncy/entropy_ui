@@ -49,7 +49,7 @@ pub fn render_labs4to6_ui(
 
     if !results.is_empty() {
         ui.separator();
-        render_experiment_results(ui, results);
+        render_experiment_results(ui, results, config);
     }
 }
 
@@ -181,7 +181,11 @@ fn render_code_matrices(ui: &mut egui::Ui, config: &CodeConfig) {
 
 /// Рендеринг результатов экспериментов
 #[allow(clippy::too_many_lines)]
-fn render_experiment_results(ui: &mut egui::Ui, results: &[Labs4To6ExperimentResult]) {
+fn render_experiment_results(
+    ui: &mut egui::Ui,
+    results: &[Labs4To6ExperimentResult],
+    config: &CodeConfig,
+) {
     ui.label(
         egui::RichText::new("Результаты экспериментов:")
             .strong()
@@ -240,6 +244,65 @@ fn render_experiment_results(ui: &mut egui::Ui, results: &[Labs4To6ExperimentRes
 
                     add_label(ui, "Синдром ошибки:");
                     ui.label(format!("({})", format_bits(&result.syndrome)));
+
+                    // Вывод таблицы синдромов для циклического кода
+                    if result.code_type == CodeType::Cyclic
+                        && let Some(ref code) = config.cyclic_code
+                    {
+                        add_label(ui, "Таблица соответствия позиции ошибки к синдрому:");
+
+                        // Оценка ширины одной записи (примерно 150-200 пикселей)
+                        let estimated_entry_width = 180.0;
+                        let available_width = ui.available_width();
+                        let spacing_between_columns = 20.0;
+
+                        // Вычисляем оптимальное количество столбцов
+                        // available_width всегда неотрицателен и ограничен разумными значениями,
+                        // поэтому приведение безопасно (усечение не произойдет для реальных размеров экрана)
+                        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                        let max_columns = (available_width
+                            / (estimated_entry_width + spacing_between_columns))
+                            .floor()
+                            .max(1.0) as usize;
+                        let num_columns = max_columns.min(code.syndrome_table.len()).max(1);
+
+                        // Вычисляем количество записей в каждом столбце
+                        let entries_per_column = code.syndrome_table.len().div_ceil(num_columns);
+
+                        egui::ScrollArea::vertical()
+                            .max_height(300.0)
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    for col in 0..num_columns {
+                                        ui.vertical(|ui| {
+                                            let start_idx = col * entries_per_column;
+                                            let end_idx = ((col + 1) * entries_per_column)
+                                                .min(code.syndrome_table.len());
+
+                                            for i in start_idx..end_idx {
+                                                if let Some((syndrome_poly, error_pos)) =
+                                                    code.syndrome_table.get(i)
+                                                {
+                                                    let syndrome_bits =
+                                                        polynomial_to_bits(syndrome_poly, code.p);
+                                                    ui.horizontal(|ui| {
+                                                        ui.label(format!("{}:", error_pos + 1));
+                                                        ui.label(format!(
+                                                            "({})",
+                                                            format_bits(&syndrome_bits)
+                                                        ));
+                                                    });
+                                                }
+                                            }
+                                        });
+
+                                        if col < num_columns - 1 {
+                                            ui.add_space(spacing_between_columns);
+                                        }
+                                    }
+                                });
+                            });
+                    }
 
                     if let Some(overall_parity) = result.overall_parity {
                         add_label(
