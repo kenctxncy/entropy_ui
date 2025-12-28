@@ -2,6 +2,11 @@
 name = "entropy_ui"
 version = "0.1.0"
 edition = "2024"
+description = "GUI приложение для лабораторных работ по теории информации и кодирования"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/theory-of-information-and-encoding"
+keywords = ["gui", "entropy", "information-theory", "egui"]
+categories = ["gui", "science"]
 
 [dependencies]
 entropy_fx = { path = "../entropy_fx" }
